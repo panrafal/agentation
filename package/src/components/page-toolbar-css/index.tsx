@@ -619,6 +619,9 @@ export function PageFeedbackToolbarCSS({
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
   const currentStrokeRef = useRef<Array<{x: number, y: number}>>([]);
+  const glowAlphaRef = useRef(0);
+  const glowAnimRef = useRef<number | null>(null);
+  const glowTargetRef = useRef<number | null>(null);
 
   // Cmd+shift+click multi-select state
   const [pendingMultiSelectElements, setPendingMultiSelectElements] = useState<
@@ -2414,7 +2417,7 @@ export function PageFeedbackToolbarCSS({
   }, [isActive, isDragging]);
 
   // Draw mode: redraw helper
-  const redrawCanvas = useCallback((ctx: CanvasRenderingContext2D, strokes: typeof drawStrokes, hoveredIdx?: number | null) => {
+  const redrawCanvas = useCallback((ctx: CanvasRenderingContext2D, strokes: typeof drawStrokes, hoveredIdx?: number | null, glowAlpha?: number) => {
     const scrollY = window.scrollY;
     const dpr = window.devicePixelRatio || 1;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -2436,7 +2439,8 @@ export function PageFeedbackToolbarCSS({
     };
 
     // Pass 1: glow behind hovered stroke
-    if (hoveredIdx != null && hoveredIdx < strokes.length) {
+    const alpha = glowAlpha ?? 0;
+    if (hoveredIdx != null && hoveredIdx < strokes.length && alpha > 0) {
       const stroke = strokes[hoveredIdx];
       if (stroke.points.length >= 2) {
         const offsetY = stroke.fixed ? 0 : scrollY;
@@ -2445,7 +2449,7 @@ export function PageFeedbackToolbarCSS({
         ctx.lineWidth = 10;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.globalAlpha = 0.25;
+        ctx.globalAlpha = alpha;
         tracePath(stroke, offsetY);
         ctx.stroke();
         ctx.globalAlpha = 1;
@@ -2779,7 +2783,7 @@ export function PageFeedbackToolbarCSS({
     };
   }, [isDrawMode, isActive, settings.annotationColor, drawStrokes, annotations, effectiveReactMode, redrawCanvas, startEditAnnotation, pendingAnnotation, editingAnnotation]);
 
-  // Draw mode: resize canvas, redraw on scroll
+  // Draw mode: resize canvas, redraw on scroll, animate glow highlight
   useEffect(() => {
     if (!isActive) return;
     const canvas = drawCanvasRef.current;
@@ -2787,27 +2791,53 @@ export function PageFeedbackToolbarCSS({
 
     const effectiveHighlight = hoveredDrawingIdx ?? pendingAnnotation?.drawingIndex ?? null;
 
+    // Animate glow alpha toward target
+    const targetAlpha = effectiveHighlight != null ? 0.25 : 0;
+    if (glowTargetRef.current !== effectiveHighlight) {
+      glowTargetRef.current = effectiveHighlight;
+      // If highlight target changed (different stroke or null), start animating
+      if (glowAnimRef.current) cancelAnimationFrame(glowAnimRef.current);
+
+      const animate = () => {
+        const diff = targetAlpha - glowAlphaRef.current;
+        if (Math.abs(diff) < 0.01) {
+          glowAlphaRef.current = targetAlpha;
+        } else {
+          glowAlphaRef.current += diff * 0.2;
+        }
+        const ctx = canvas.getContext("2d");
+        if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight, glowAlphaRef.current);
+        if (Math.abs(glowAlphaRef.current - targetAlpha) > 0.005) {
+          glowAnimRef.current = requestAnimationFrame(animate);
+        } else {
+          glowAlphaRef.current = targetAlpha;
+          glowAnimRef.current = null;
+        }
+      };
+      glowAnimRef.current = requestAnimationFrame(animate);
+    }
+
+    const draw = () => {
+      const ctx = canvas.getContext("2d");
+      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight, glowAlphaRef.current);
+    };
+
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
       canvas.style.width = window.innerWidth + "px";
       canvas.style.height = window.innerHeight + "px";
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      const ctx = canvas.getContext("2d");
-      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight);
-    };
-
-    const onScroll = () => {
-      const ctx = canvas.getContext("2d");
-      if (ctx) redrawCanvas(ctx, drawStrokes, effectiveHighlight);
+      draw();
     };
 
     resize();
     window.addEventListener("resize", resize);
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", draw, { passive: true });
     return () => {
       window.removeEventListener("resize", resize);
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", draw);
+      if (glowAnimRef.current) cancelAnimationFrame(glowAnimRef.current);
     };
   }, [isActive, drawStrokes, hoveredDrawingIdx, pendingAnnotation?.drawingIndex, redrawCanvas]);
 
@@ -4687,10 +4717,11 @@ export function PageFeedbackToolbarCSS({
               : undefined
           }
         >
-          {/* Draw canvas */}
+          {/* Draw canvas — hidden when markers are hidden (unless actively in draw mode) */}
           <canvas
             ref={drawCanvasRef}
             className={`${styles.drawCanvas} ${isDrawMode ? styles.active : ""}`}
+            style={!showMarkers && !isDrawMode ? { display: "none" } : undefined}
           />
 
           {/* Hover highlight */}
