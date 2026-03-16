@@ -399,7 +399,7 @@
 
 .controlButton {
   position: relative;
-  cursor: pointer !important;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -464,7 +464,7 @@
 
   &[data-no-hover="true"],
   &.statusShowing {
-    cursor: default !important;
+    cursor: default;
     pointer-events: none;
     background: transparent !important;
   }
@@ -1026,6 +1026,7 @@
   &.pending {
     position: fixed;
     background-color: var(--agentation-color-blue);
+    cursor: default;
   }
 
   &.fixed {
@@ -1494,7 +1495,6 @@
   color: #fff;
   outline: none;
   resize: none;
-  cursor: text !important;
   user-select: text;
   transition:
     border-color 0.15s ease,
@@ -2031,7 +2031,6 @@
 
   &.disabled {
     opacity: 0.4;
-    pointer-events: none;
 
     .toggleSlider {
       cursor: not-allowed;
