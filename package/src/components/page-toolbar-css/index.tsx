@@ -2536,7 +2536,7 @@ const [settings, setSettings] = useState<ToolbarSettings>(() => {
       // Only drag when clicking the toolbar background (not buttons or settings)
       if (
         (e.target as HTMLElement).closest("button") ||
-        (e.target as HTMLElement).closest(`.${styles.settingsPanel}`)
+        (e.target as HTMLElement).closest('[data-agentation-settings-panel]')
       ) {
         return;
       }

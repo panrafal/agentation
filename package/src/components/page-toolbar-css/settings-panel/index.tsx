@@ -54,6 +54,7 @@ export function SettingsPanel({
           ? { bottom: "auto", top: "calc(100% + 0.5rem)" }
           : undefined
       }
+      data-agentation-settings-panel
     >
       <div className={styles.settingsPanelContainer}>
         {/* ── Main page ── */}
