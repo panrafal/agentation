@@ -6,7 +6,7 @@ import { MobileNav } from "./MobileNav";
 import { MobileNotice } from "./MobileNotice";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://agentation.dev"),
+  metadataBase: new URL("https://agentation.com"),
   title: "Agentation",
   description: "The visual feedback tool for agents.",
   openGraph: {
