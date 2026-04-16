@@ -5,7 +5,7 @@ const nextConfig = {
   output: 'export',
   outputFileTracingRoot: path.join(__dirname, '../..'),
   // Allow importing from parent directory (the package source)
-  transpilePackages: ['agentation'],
+  transpilePackages: ['@panrafal/agentation'],
 };
 
 module.exports = nextConfig;

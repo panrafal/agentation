@@ -5,21 +5,25 @@
 
 <br>
 
-[![npm version](https://img.shields.io/npm/v/agentation)](https://www.npmjs.com/package/agentation)
-[![downloads](https://img.shields.io/npm/dm/agentation)](https://www.npmjs.com/package/agentation)
+[![npm version](https://img.shields.io/npm/v/@panrafal/agentation)](https://www.npmjs.com/package/@panrafal/agentation)
+[![downloads](https://img.shields.io/npm/dm/@panrafal/agentation)](https://www.npmjs.com/package/@panrafal/agentation)
 
 **[Agentation](https://agentation.com)** is an agent-agnostic visual feedback tool. Click elements on your page, add notes, and copy structured output that helps AI coding agents find the exact code you're referring to.
+
+> This is a fork of [Agentation](https://github.com/benjitaylor/agentation)
+> needed only to maintain my own modifications. Please use and support the
+> original project.
 
 ## Install
 
 ```bash
-npm install agentation -D
+npm install @panrafal/agentation -D
 ```
 
 ## Usage
 
 ```tsx
-import { Agentation } from 'agentation';
+import {Agentation} from '@panrafal/agentation'
 
 function App() {
   return (
@@ -27,7 +31,7 @@ function App() {
       <YourApp />
       <Agentation />
     </>
-  );
+  )
 }
 ```
 
