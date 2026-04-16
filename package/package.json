@@ -1,5 +1,5 @@
 {
-  "name": "agentation",
+  "name": "@panrafal/agentation",
   "version": "3.0.2",
   "description": "Visual feedback for AI coding agents",
   "sideEffects": false,
