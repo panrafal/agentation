@@ -147,6 +147,16 @@
   }
 }
 
+// Expanded header shows the full element/React path instead of truncating it
+.element.wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.headerToggle:has(.wrap) {
+  align-items: flex-start;
+}
+
 // Chevron icon that rotates when computed styles are expanded
 .chevron {
   color: rgba(255, 255, 255, 0.5);
@@ -179,6 +189,13 @@
   overflow: hidden;
 }
 
+// Long previews (forensic styles, nearby elements) scroll instead of growing the popup
+.stylesScroll {
+  max-height: 14rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 // Code-block styling for computed CSS properties display
 .stylesBlock {
   background: rgba(255, 255, 255, 0.05);
@@ -193,7 +210,7 @@
 
 .styleLine {
   color: rgba(255, 255, 255, 0.85);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 // Syntax highlighting colors (purple for properties, light for values)

@@ -50,6 +50,8 @@ export interface AnnotationPopupCSSProps {
   lightMode?: boolean;
   /** Computed styles for the selected element */
   computedStyles?: Record<string, string>;
+  /** Element details previewed in the expandable section (label/value rows) */
+  details?: { label: string; value: string }[];
 }
 
 export interface AnnotationPopupCSSHandle {
@@ -81,6 +83,7 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
       onExitComplete,
       lightMode = false,
       computedStyles,
+      details,
     },
     ref
   ) {
@@ -184,6 +187,7 @@ export const AnnotationPopupCSS = forwardRef<AnnotationPopupCSSHandle, Annotatio
           allowEmpty={allowEmpty}
           accentColor={accentColor}
           computedStyles={computedStyles}
+          details={details}
           disabled={visibleAnimState === "exit"}
         />
       </div>

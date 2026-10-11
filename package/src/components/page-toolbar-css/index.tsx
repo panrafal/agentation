@@ -89,7 +89,7 @@ import {
 } from "../../utils/freeze-animations";
 
 import type { Annotation } from "../../types";
-import { generateOutput, generateOutputHeader } from "../../utils/generate-output";
+import { generateOutput, generateOutputHeader, getAnnotationOutputFields } from "../../utils/generate-output";
 import { captureElementAttributes, DEFAULT_IDENTIFYING_ATTRIBUTES } from "../../utils/element-attributes";
 import { formatCopyOutput, type CopyFormat } from "../../utils/copy-format";
 import {
@@ -4635,6 +4635,14 @@ function PageFeedbackToolbarForRoute({
                     const markerY = positioned.isFixed
                       ? positioned.y
                       : positioned.y - scrollY;
+                    // Preview what the chosen detail level sends; selected text and
+                    // styles already have their own popup sections.
+                    const detailLevel = settings.outputDetail;
+                    const details = getAnnotationOutputFields(pendingAnnotation, detailLevel)
+                      .filter(({ label }) => label !== "Selected text" && label !== "Computed Styles");
+                    if (detailLevel !== "standard" && detailLevel !== "detailed" && !pendingAnnotation.isMultiSelect) {
+                      details.unshift({ label: "Location", value: pendingAnnotation.elementPath });
+                    }
 
                     return (
                       <>
@@ -4646,7 +4654,10 @@ function PageFeedbackToolbarForRoute({
                           allowEmpty={typeof copyFormat === "object" && !!pendingAnnotation.attributes?.[copyFormat.attribute]}
                           onOpenSource={onOpenSource && pendingAnnotation.sourceFile
                             ? () => onOpenSource(pendingAnnotation.sourceFile!) : undefined}
-                          computedStyles={pendingAnnotation.computedStylesObj}
+                          computedStyles={detailLevel === "forensic"
+                            ? parseComputedStylesString(pendingAnnotation.computedStyles)
+                            : pendingAnnotation.computedStylesObj}
+                          details={details}
                           placeholder={
                             typeof copyFormat === "object" && pendingAnnotation.attributes?.[copyFormat.attribute]
                               ? "Add a note (optional)"
