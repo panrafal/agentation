@@ -40,6 +40,7 @@ export type AnnotationEditorProps = Pick<
   | "allowEmpty"
   | "accentColor"
   | "computedStyles"
+  | "details"
 > & {
   disabled?: boolean;
   preview?: boolean;
@@ -68,6 +69,7 @@ export const AnnotationEditor = forwardRef<
     allowEmpty = false,
     accentColor = "#3c82f7",
     computedStyles,
+    details,
     disabled = false,
     preview = false,
     resetOnPreview = true,
@@ -81,6 +83,8 @@ export const AnnotationEditor = forwardRef<
   const [isStylesExpanded, setIsStylesExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
+  const hasStyles = !!computedStyles && Object.keys(computedStyles).length > 0;
+  const hasDetails = !!details && details.length > 0;
   const previewExcerpt = selectedText
     ? ` "${selectedText.slice(0, 30)}${selectedText.length > 30 ? "..." : ""}"`
     : "";
@@ -176,9 +180,10 @@ export const AnnotationEditor = forwardRef<
       data-preview={preview || undefined}
     >
       <div className={styles.header} data-editor-heading>
-        {computedStyles && Object.keys(computedStyles).length > 0 ? (
+        {hasStyles || hasDetails ? (
           <button
             className={styles.headerToggle}
+            aria-expanded={isStylesExpanded}
             onClick={() => {
               const wasExpanded = isStylesExpanded;
               setIsStylesExpanded(!isStylesExpanded);
@@ -208,7 +213,9 @@ export const AnnotationEditor = forwardRef<
                 strokeLinejoin="round"
               />
             </svg>
-            <span className={styles.element}>
+            <span
+              className={`${styles.element} ${isStylesExpanded && !isCard ? styles.wrap : ""}`}
+            >
               {element}
               {isCard && previewExcerpt && (
                 <span className={styles.previewExcerpt}>{previewExcerpt}</span>
@@ -246,21 +253,35 @@ export const AnnotationEditor = forwardRef<
         </div>
       )}
 
-      {/* Collapsible computed styles section - uses grid-template-rows for smooth animation */}
-      {computedStyles && Object.keys(computedStyles).length > 0 && (
+      {/* Collapsible element info section - uses grid-template-rows for smooth animation */}
+      {(hasStyles || hasDetails) && (
         <div
           className={`${styles.stylesWrapper} ${isStylesExpanded ? styles.expanded : ""}`}
         >
           <div className={styles.stylesInner}>
-            <div className={styles.stylesBlock}>
-              {Object.entries(computedStyles).map(([key, value]) => (
-                <div key={key} className={styles.styleLine}>
-                  <span className={styles.styleProperty}>
-                    {key.replace(/([A-Z])/g, "-$1").toLowerCase()}
-                  </span>
-                  : <span className={styles.styleValue}>{value}</span>;
+            <div className={styles.stylesScroll}>
+              {hasDetails && (
+                <div className={styles.stylesBlock}>
+                  {details.map(({ label, value }) => (
+                    <div key={label} className={styles.styleLine}>
+                      <span className={styles.styleProperty}>{label}</span>:{" "}
+                      <span className={styles.styleValue}>{value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {hasStyles && (
+                <div className={styles.stylesBlock}>
+                  {Object.entries(computedStyles).map(([key, value]) => (
+                    <div key={key} className={styles.styleLine}>
+                      <span className={styles.styleProperty}>
+                        {key.replace(/([A-Z])/g, "-$1").toLowerCase()}
+                      </span>
+                      : <span className={styles.styleValue}>{value}</span>;
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

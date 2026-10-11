@@ -31,6 +31,67 @@ export function generateOutputHeader(pathname: string, appName?: string): string
   return output;
 }
 
+export type AnnotationOutputField = { label: string; value: string };
+
+/**
+ * Element details that `generateOutput` emits for one annotation at the given
+ * detail level (excluding the heading and feedback). Shared with the
+ * annotation popup so its expanded section previews what the agent receives.
+ * Compact output inlines only the source file.
+ */
+export function getAnnotationOutputFields(
+  a: Omit<Annotation, "id" | "comment" | "timestamp">,
+  detailLevel: OutputDetailLevel = "standard",
+): AnnotationOutputField[] {
+  const fields: AnnotationOutputField[] = [];
+  const add = (label: string, value: string | undefined | false) => {
+    if (value) fields.push({ label, value });
+  };
+  const box = a.boundingBox;
+  const size = box
+    ? `(${Math.round(box.width)}×${Math.round(box.height)}px)`
+    : "";
+  const context =
+    a.nearbyText && !a.selectedText && a.nearbyText.slice(0, 100);
+
+  if (detailLevel === "compact") {
+    add("Source", a.sourceFile);
+  } else if (detailLevel === "forensic") {
+    add("Full DOM Path", a.fullPath);
+    add("CSS Classes", a.cssClasses);
+    add(
+      "Position",
+      box && `x:${Math.round(box.x)}, y:${Math.round(box.y)} ${size}`,
+    );
+    add(
+      "Annotation at",
+      `${a.x.toFixed(1)}% from left, ${Math.round(a.y)}px from top`,
+    );
+    add("Selected text", a.selectedText && `"${a.selectedText}"`);
+    add("Context", context);
+    add("Computed Styles", a.computedStyles);
+    add("Accessibility", a.accessibility);
+    add("Nearby Elements", a.nearbyElements);
+    add("Source", a.sourceFile);
+    add("React", a.reactComponents);
+  } else {
+    const detailed = detailLevel === "detailed";
+    fields.push({ label: "Location", value: a.elementPath });
+    add("Source", a.sourceFile);
+    add("React", a.reactComponents);
+    if (detailed) {
+      add("Classes", a.cssClasses);
+      add(
+        "Position",
+        box && `${Math.round(box.x)}px, ${Math.round(box.y)}px ${size}`,
+      );
+    }
+    add("Selected text", a.selectedText && `"${a.selectedText}"`);
+    if (detailed) add("Context", context);
+  }
+  return fields;
+}
+
 export function generateOutput(
   annotations: Annotation[],
   pathname: string,
@@ -68,66 +129,13 @@ export function generateOutput(
         output += ` (re: "${a.selectedText.slice(0, 30)}${a.selectedText.length > 30 ? "..." : ""}")`;
       }
       output += "\n";
-    } else if (detailLevel === "forensic") {
+    } else {
       output += `### ${i + 1}. ${a.element}\n`;
-      if (a.isMultiSelect && a.fullPath) {
+      if (detailLevel === "forensic" && a.isMultiSelect && a.fullPath) {
         output += `*Forensic data shown for first element of selection*\n`;
       }
-      if (a.fullPath) {
-        output += `**Full DOM Path:** ${a.fullPath}\n`;
-      }
-      if (a.cssClasses) {
-        output += `**CSS Classes:** ${a.cssClasses}\n`;
-      }
-      if (a.boundingBox) {
-        output += `**Position:** x:${Math.round(a.boundingBox.x)}, y:${Math.round(a.boundingBox.y)} (${Math.round(a.boundingBox.width)}×${Math.round(a.boundingBox.height)}px)\n`;
-      }
-      output += `**Annotation at:** ${a.x.toFixed(1)}% from left, ${Math.round(a.y)}px from top\n`;
-      if (a.selectedText) {
-        output += `**Selected text:** "${a.selectedText}"\n`;
-      }
-      if (a.nearbyText && !a.selectedText) {
-        output += `**Context:** ${a.nearbyText.slice(0, 100)}\n`;
-      }
-      if (a.computedStyles) {
-        output += `**Computed Styles:** ${a.computedStyles}\n`;
-      }
-      if (a.accessibility) {
-        output += `**Accessibility:** ${a.accessibility}\n`;
-      }
-      if (a.nearbyElements) {
-        output += `**Nearby Elements:** ${a.nearbyElements}\n`;
-      }
-      if (a.sourceFile) {
-        output += `**Source:** ${a.sourceFile}\n`;
-      }
-      if (a.reactComponents) {
-        output += `**React:** ${a.reactComponents}\n`;
-      }
-      output += `**Feedback:** ${a.comment}\n\n`;
-    } else {
-      // standard and detailed
-      output += `### ${i + 1}. ${a.element}\n`;
-      output += `**Location:** ${a.elementPath}\n`;
-      if (a.sourceFile) {
-        output += `**Source:** ${a.sourceFile}\n`;
-      }
-      if (a.reactComponents) {
-        output += `**React:** ${a.reactComponents}\n`;
-      }
-      if (detailLevel === "detailed") {
-        if (a.cssClasses) {
-          output += `**Classes:** ${a.cssClasses}\n`;
-        }
-        if (a.boundingBox) {
-          output += `**Position:** ${Math.round(a.boundingBox.x)}px, ${Math.round(a.boundingBox.y)}px (${Math.round(a.boundingBox.width)}×${Math.round(a.boundingBox.height)}px)\n`;
-        }
-      }
-      if (a.selectedText) {
-        output += `**Selected text:** "${a.selectedText}"\n`;
-      }
-      if (detailLevel === "detailed" && a.nearbyText && !a.selectedText) {
-        output += `**Context:** ${a.nearbyText.slice(0, 100)}\n`;
+      for (const field of getAnnotationOutputFields(a, detailLevel)) {
+        output += `**${field.label}:** ${field.value}\n`;
       }
       output += `**Feedback:** ${a.comment}\n\n`;
     }
