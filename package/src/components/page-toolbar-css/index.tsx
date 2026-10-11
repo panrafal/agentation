@@ -92,6 +92,14 @@ import type { Annotation } from "../../types";
 import { generateOutput, generateOutputHeader } from "../../utils/generate-output";
 import { captureElementAttributes, DEFAULT_IDENTIFYING_ATTRIBUTES } from "../../utils/element-attributes";
 import { formatCopyOutput, type CopyFormat } from "../../utils/copy-format";
+import {
+  ariaShortcut,
+  formatShortcut,
+  hasExactModifiers,
+  NO_SHORTCUT_MODIFIERS,
+  shortcutKey,
+  type ShortcutModifier,
+} from "../../utils/shortcuts";
 import { copyTextToClipboard } from "../../utils/clipboard";
 import { createShadowSync } from "../../utils/shadow-sync";
 import { subscribeSessionResolutions } from "../../utils/session-resolutions";
@@ -354,6 +362,12 @@ export type PageFeedbackToolbarCSSProps = {
   appName?: string;
   /** Enable global keyboard shortcuts. Popup Enter/Escape remain available. Defaults to true. */
   enableKeyboardShortcuts?: boolean;
+  /**
+   * Modifier keys every toolbar shortcut requires, exactly (e.g. `["ctrl", "alt"]` makes
+   * L into Ctrl+Alt+L and the feedback toggle into Ctrl+Alt+F). Esc stays unmodified.
+   * Defaults to none: bare letters, and Cmd/Ctrl+Shift+F to toggle.
+   */
+  shortcutModifiers?: readonly ShortcutModifier[];
   /** Stable data attributes used in element paths. Replaces the default identifying list. */
   identifyingAttributes?: readonly string[];
   /** Format the Copy action. Send to Agent always receives structured markdown. */
@@ -392,6 +406,7 @@ function PageFeedbackToolbarForRoute({
   useHashLocation = false,
   appName,
   enableKeyboardShortcuts = true,
+  shortcutModifiers = NO_SHORTCUT_MODIFIERS,
   identifyingAttributes = DEFAULT_IDENTIFYING_ATTRIBUTES,
   copyFormat = "markdown",
   onOpenSource,
@@ -3449,7 +3464,8 @@ function PageFeedbackToolbarForRoute({
   useEffect(() => {
     if (!enableKeyboardShortcuts) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing || e.altKey) return;
+      const custom = shortcutModifiers.length > 0;
+      if (e.defaultPrevented || e.isComposing || (!custom && e.altKey)) return;
       // Document listeners see the shadow host as target. Inspect the original
       // element so typing in web components never triggers toolbar shortcuts.
       const target = (e.composedPath()[0] || e.target) as HTMLElement;
@@ -3498,8 +3514,17 @@ function PageFeedbackToolbarForRoute({
         }
       }
 
-      // Cmd+Shift+F / Ctrl+Shift+F to toggle feedback mode
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "f" || e.key === "F")) {
+      const key = shortcutKey(e);
+      const comboHeld = custom && hasExactModifiers(e, shortcutModifiers);
+
+      // Cmd+Shift+F / Ctrl+Shift+F (or the configured modifiers + F) to toggle
+      // feedback mode. Works while typing only when Ctrl/Cmd is part of the combo.
+      if (
+        key === "f" &&
+        (custom
+          ? comboHeld && (!isTyping || e.ctrlKey || e.metaKey)
+          : (e.metaKey || e.ctrlKey) && e.shiftKey)
+      ) {
         e.preventDefault();
         hideTooltipsUntilMouseLeave();
         if (isActive) {
@@ -3514,20 +3539,20 @@ function PageFeedbackToolbarForRoute({
 
       // Single-key shortcuts belong to the expanded toolbar. Skip them when
       // it is collapsed (the host page owns the keyboard then), when typing,
-      // or when modifier keys are held.
-      if (!isActive || isTyping || e.metaKey || e.ctrlKey) return;
+      // or when modifier keys other than the configured ones are held.
+      if (!isActive || isTyping || (custom ? !comboHeld : e.metaKey || e.ctrlKey)) return;
 
       if (e.repeat) return;
 
       // "P" to toggle pause/freeze
-      if (e.key === "p" || e.key === "P") {
+      if (key === "p") {
         e.preventDefault();
         hideTooltipsUntilMouseLeave();
         toggleFreeze();
       }
 
       // "L" to toggle layout mode
-      if (e.key === "l" || e.key === "L") {
+      if (key === "l") {
         e.preventDefault();
         hideTooltipsUntilMouseLeave();
         if (isDrawMode) setIsDrawMode(false);
@@ -3541,7 +3566,7 @@ function PageFeedbackToolbarForRoute({
       }
 
       // "H" to toggle marker visibility
-      if (e.key === "h" || e.key === "H") {
+      if (key === "h") {
         if (annotations.length > 0) {
           e.preventDefault();
           hideTooltipsUntilMouseLeave();
@@ -3550,7 +3575,7 @@ function PageFeedbackToolbarForRoute({
       }
 
       // "C" to copy output
-      if (e.key === "c" || e.key === "C") {
+      if (key === "c") {
         if (annotations.length > 0 || designPlacements.length > 0 || rearrangeState) {
           e.preventDefault();
           hideTooltipsUntilMouseLeave();
@@ -3559,7 +3584,7 @@ function PageFeedbackToolbarForRoute({
       }
 
       // "X" to clear all
-      if (e.key === "x" || e.key === "X") {
+      if (key === "x") {
         if (annotations.length > 0 || designPlacements.length > 0 || rearrangeState) {
           e.preventDefault();
           hideTooltipsUntilMouseLeave();
@@ -3570,7 +3595,7 @@ function PageFeedbackToolbarForRoute({
       }
 
       // "S" to send annotations
-      if (e.key === "s" || e.key === "S") {
+      if (key === "s") {
         if (
           annotations.length > 0 &&
           canSend &&
@@ -3588,6 +3613,7 @@ function PageFeedbackToolbarForRoute({
     return () => pageEvents.removeEventListener("keydown", handleKeyDown, capture);
   }, [
     enableKeyboardShortcuts,
+    shortcutModifiers,
     portalContainer,
     editingAnnotation,
     isActive,
@@ -3751,7 +3777,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                     {freezeLabel}
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>P</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("P", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3801,7 +3827,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                     {designModeLabel}
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>L</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("L", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3821,7 +3847,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                     {markersLabel}
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>H</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("H", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3844,7 +3870,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                   {missingCopyMetadata ? "No matching metadata" : copyLabel}
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>C</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("C", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3878,7 +3904,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                     Send Annotations
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>S</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("S", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3899,7 +3925,7 @@ function PageFeedbackToolbarForRoute({
                   </button>
                   <span className={styles.buttonTooltip}>
                     Clear all
-                    {enableKeyboardShortcuts && <span className={styles.shortcut}>X</span>}
+                    {enableKeyboardShortcuts && <span className={styles.shortcut}>{formatShortcut("X", shortcutModifiers)}</span>}
                   </span>
                 </div>
 
@@ -3957,8 +3983,8 @@ function PageFeedbackToolbarForRoute({
                   className={`${styles.toggleContent} ${isActive ? styles.expandedToggle : ""}`}
                   aria-label={isActive ? "Exit" : "Start feedback mode"}
                   aria-expanded={isActive}
-                  aria-keyshortcuts={enableKeyboardShortcuts ? "Meta+Shift+F Control+Shift+F" : undefined}
-                  title={isActive ? undefined : enableKeyboardShortcuts ? "Start feedback mode (⌘⇧F / Ctrl+Shift+F)" : "Start feedback mode"}
+                  aria-keyshortcuts={!enableKeyboardShortcuts ? undefined : shortcutModifiers.length ? ariaShortcut("F", shortcutModifiers) : "Meta+Shift+F Control+Shift+F"}
+                  title={isActive ? undefined : !enableKeyboardShortcuts ? "Start feedback mode" : `Start feedback mode (${shortcutModifiers.length ? formatShortcut("F", shortcutModifiers) : "⌘⇧F / Ctrl+Shift+F"})`}
                   onClick={(e) => {
                     if (justFinishedToolbarDragRef.current) {
                       justFinishedToolbarDragRef.current = false;

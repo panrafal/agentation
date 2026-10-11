@@ -83,6 +83,7 @@ browser: create a test annotation and ask your agent to read
 | `useHashLocation` | `boolean` | `false` | Separate feedback, layout state and sessions by pathname plus hash |
 | `appName` | `string` | - | Identify the app in copied and submitted feedback |
 | `enableKeyboardShortcuts` | `boolean` | `true` | Enable global shortcuts; popup Enter/Escape and button activation remain available |
+| `shortcutModifiers` | `Array<"ctrl" \| "alt" \| "shift" \| "meta">` | `[]` | Modifiers every shortcut requires exactly, e.g. `["ctrl", "alt"]` turns `L` into Ctrl+Alt+L and the toggle into Ctrl+Alt+F; Esc stays bare |
 | `identifyingAttributes` | `readonly string[]` | See below | Attributes captured from the selected element for identification |
 | `copyFormat` | `"markdown"`, `"source"`, `"classes"`, or attribute option | `"markdown"` | Choose the Copy output; Send still receives structured markdown and annotations |
 | `onOpenSource` | `(sourceFile: string) => void` | - | Show Open in editor when source metadata is available |

@@ -140,7 +140,7 @@ export default function FeaturesPage() {
           </tbody>
         </ReferenceTable>
         <DocNote>
-          Single-key shortcuts work while the toolbar is open, and all shortcuts are disabled when typing in an input field. Cmd+Shift+F and Esc also work while it is closed.
+          Single-key shortcuts work while the toolbar is open, and are disabled when typing in an input field. Cmd+Shift+F and Esc also work while it is closed. To avoid clashing with your app’s keys, set <code>shortcutModifiers</code>: with <code>{'["ctrl", "alt"]'}</code>, every key above except Esc needs Ctrl+Alt, so F toggles feedback mode and L toggles layout mode.
         </DocNote>
       </section>
 

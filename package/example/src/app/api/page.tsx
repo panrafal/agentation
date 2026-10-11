@@ -74,6 +74,9 @@ export default function APIPage() {
             <ReferenceItem name="enableKeyboardShortcuts" type="boolean" defaultValue="true">
               Enable global shortcuts. Popup Enter/Escape and keyboard activation of buttons remain available.
             </ReferenceItem>
+            <ReferenceItem name="shortcutModifiers" type={'Array<"ctrl" | "alt" | "shift" | "meta">'} defaultValue="[]">
+              Require exactly these modifiers for every shortcut. <code>{'["ctrl", "alt"]'}</code> turns L into Ctrl+Alt+L and the feedback toggle into Ctrl+Alt+F. Esc stays unmodified, and tooltips show the configured combination.
+            </ReferenceItem>
             <ReferenceItem name="identifyingAttributes" type="readonly string[]">
               Replace the default list of identifying attributes captured from selected elements.
             </ReferenceItem>
