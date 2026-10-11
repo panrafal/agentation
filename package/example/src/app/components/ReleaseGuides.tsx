@@ -66,6 +66,8 @@ export function App() {
         <p>Hash changes and browser Back/Forward are tracked. If your router changes history without a navigation event, render Agentation from a component subscribed to that router’s location. Unsaved popup text is cancelled on navigation; saved feedback stays with its route. Query strings do not create separate feedback buckets. Existing pathname-only data stays in its original bucket.</p>
         <p>For an app with its own keyboard shortcuts, turn off Agentation’s global shortcuts. The toolbar buttons and Enter/Escape within feedback popups remain usable.</p>
         <CodeBlock code={`<Agentation enableKeyboardShortcuts={false} />`} />
+        <p>Or keep them behind modifiers. Every shortcut except Esc then requires exactly those keys, such as Ctrl+Alt+F to toggle feedback mode and Ctrl+Alt+L for layout mode. Toolbar tooltips show the configured combination.</p>
+        <CodeBlock code={`<Agentation shortcutModifiers={["ctrl", "alt"]} />`} />
       </section>
     </>
   );

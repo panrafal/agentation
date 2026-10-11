@@ -237,6 +237,43 @@ describe("keyboard shortcuts", () => {
     fireEvent.keyDown(document, { key: "f", ctrlKey: true, shiftKey: true });
     expect(fireEvent.keyDown(editor, { key: "l" })).toBe(false);
   });
+
+  it("requires exactly the configured shortcutModifiers", () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    render(
+      <>
+        <input data-testid="input" />
+        <div tabIndex={0} data-testid="editor" />
+        <PageFeedbackToolbarCSS shortcutModifiers={["alt", "ctrl"]} />
+      </>
+    );
+    const editor = screen.getByTestId("editor");
+    const input = screen.getByTestId("input");
+    const launcher = () => toolbarRoot().querySelector<HTMLButtonElement>("[aria-expanded][aria-keyshortcuts]")!;
+    expect(launcher().getAttribute("aria-keyshortcuts")).toBe("Control+Alt+F");
+    expect(launcher().title).toBe("Start feedback mode (Ctrl+Alt+F)");
+
+    // The default toggle no longer fires
+    fireEvent.keyDown(document, { key: "f", ctrlKey: true, shiftKey: true });
+    expect(launcher().getAttribute("aria-expanded")).toBe("false");
+
+    // Matched by physical key, since macOS Option rewrites event.key
+    fireEvent.keyDown(document, { key: "ƒ", code: "KeyF", ctrlKey: true, altKey: true });
+    expect(launcher().getAttribute("aria-expanded")).toBe("true");
+    expect(toolbarRoot().textContent).toContain("Ctrl+Alt+L");
+
+    // Bare, partial or extra modifiers and typing are left to the host page
+    expect(fireEvent.keyDown(editor, { key: "l", code: "KeyL" })).toBe(true);
+    expect(fireEvent.keyDown(editor, { key: "l", code: "KeyL", ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(editor, { key: "L", code: "KeyL", ctrlKey: true, altKey: true, shiftKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: "l", code: "KeyL", ctrlKey: true, altKey: true })).toBe(true);
+    expect(fireEvent.keyDown(editor, { key: "¬", code: "KeyL", ctrlKey: true, altKey: true })).toBe(false);
+    expect(toolbarRoot().querySelector('[aria-label="Exit layout mode"]')).not.toBeNull();
+
+    // The toggle includes Ctrl, so it also works from an input
+    fireEvent.keyDown(input, { key: "f", code: "KeyF", ctrlKey: true, altKey: true });
+    expect(launcher().getAttribute("aria-expanded")).toBe("false");
+  });
 });
 
 describe("layout mode interruptions", () => {
